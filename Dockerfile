@@ -3,8 +3,10 @@ FROM golang:alpine
 WORKDIR /go/src/app
 COPY . .
 
-RUN go-wrapper download
-RUN go-wrapper install
+RUN apk update && \
+    apk add git && \
+    go-wrapper download && \
+    go-wrapper install
 
 CMD ["go-wrapper", "run"]
 
