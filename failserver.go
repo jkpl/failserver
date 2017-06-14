@@ -5,9 +5,16 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"time"
 )
 
+func simulateLatency() {
+	time.Sleep(time.Duration(rand.Int63n(1000)) * time.Millisecond)
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
+	simulateLatency()
+
 	switch n := rand.Intn(100); n {
 	case 4:
 		http.Error(w, "Could not find your lucky number!", http.StatusNotFound)
