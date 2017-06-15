@@ -11,6 +11,12 @@ import (
 )
 
 var (
+	requestTime = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "failserver_request_time_ms",
+			Help: "Time spent on requests",
+		},
+	)
 	httpRequests = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "failserver_requests_total",
@@ -29,7 +35,14 @@ func statusLabel(status int) prometheus.Labels {
 	return prometheus.Labels{"status": fmt.Sprintf("%d", status)}
 }
 
+func requestTimeTrack(start time.Time) {
+	elapsed := time.Since(start)
+	elapsedMillis := float64(elapsed / time.Millisecond)
+	requestTime.Set(elapsedMillis)
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
+	defer requestTimeTrack(time.Now())
 	simulateLatency()
 
 	switch n := rand.Intn(100); n {
@@ -46,7 +59,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	prometheus.MustRegister(httpRequests)
+	prometheus.MustRegister(httpRequests, requestTime)
 
 	http.HandleFunc("/", handler)
 	http.Handle("/metrics", promhttp.Handler())
