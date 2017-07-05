@@ -13,11 +13,11 @@ import (
 )
 
 var (
-	requestDuration = prometheus.NewHistogram(
-		prometheus.HistogramOpts{
-			Name:    "http_request_time_ms",
-			Help:    "Time spent on requests",
-			Buckets: prometheus.LinearBuckets(0, 20, 20),
+	requestDuration = prometheus.NewSummary(
+		prometheus.SummaryOpts{
+			Name:       "http_request_time_ms",
+			Help:       "Time spent on requests",
+			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 		},
 	)
 	httpRequests = prometheus.NewCounterVec(
@@ -53,7 +53,8 @@ func requestDurationTrack(start time.Time) {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	defer requestDurationTrack(time.Now())
+	now := time.Now()
+	defer requestDurationTrack(now)
 	simulateLatency()
 
 	switch n := rand.Intn(100); n {
