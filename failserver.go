@@ -25,7 +25,7 @@ var (
 			Name: "http_requests_total",
 			Help: "Number of HTTP requests",
 		},
-		[]string{"status"},
+		[]string{"code"},
 	)
 	maxLatency = int64(getIntEnv("MAX_LATENCY_MS"))
 )
@@ -42,8 +42,8 @@ func simulateLatency() {
 	}
 }
 
-func statusLabel(status int) prometheus.Labels {
-	return prometheus.Labels{"status": fmt.Sprintf("%d", status)}
+func statusCodeLabel(status int) prometheus.Labels {
+	return prometheus.Labels{"code": fmt.Sprintf("%d", status)}
 }
 
 func requestDurationTrack(start time.Time) {
@@ -59,13 +59,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	switch n := rand.Intn(100); n {
 	case 4:
-		httpRequests.With(statusLabel(http.StatusNotFound)).Inc()
+		httpRequests.With(statusCodeLabel(http.StatusNotFound)).Inc()
 		http.Error(w, "Could not find your lucky number!", http.StatusNotFound)
 	case 5:
-		httpRequests.With(statusLabel(http.StatusInternalServerError)).Inc()
+		httpRequests.With(statusCodeLabel(http.StatusInternalServerError)).Inc()
 		http.Error(w, "Failed to compute your lucky number!", http.StatusInternalServerError)
 	default:
-		httpRequests.With(statusLabel(http.StatusOK)).Inc()
+		httpRequests.With(statusCodeLabel(http.StatusOK)).Inc()
 		fmt.Fprintf(w, "Your lucky number is %d", n)
 	}
 }
