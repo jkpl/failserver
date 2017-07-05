@@ -12,3 +12,8 @@ scrape_configs:
     scrape_interval: 4s
     static_configs:
       - targets: ['failserver:8080']
+  - job_name: 'pushgateway'
+    scrape_interval: 4s
+    honor_labels: true
+    static_configs:
+      - targets: ['pushgateway:9091']
