@@ -7,6 +7,8 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 )
 
@@ -25,11 +27,19 @@ var (
 		},
 		[]string{"status"},
 	)
-	maxLatency = int64(200)
+	maxLatency = int64(getIntEnv("MAX_LATENCY_MS"))
 )
 
+func getIntEnv(envKey string) int {
+	envStr := os.Getenv(envKey)
+	i, _ := strconv.Atoi(envStr)
+	return i
+}
+
 func simulateLatency() {
-	time.Sleep(time.Duration(rand.Int63n(maxLatency)) * time.Millisecond)
+	if maxLatency > 0 {
+		time.Sleep(time.Duration(rand.Int63n(maxLatency)) * time.Millisecond)
+	}
 }
 
 func statusLabel(status int) prometheus.Labels {
