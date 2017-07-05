@@ -15,14 +15,14 @@ import (
 var (
 	requestDuration = prometheus.NewHistogram(
 		prometheus.HistogramOpts{
-			Name:    "failserver_request_time_ms",
+			Name:    "http_request_time_ms",
 			Help:    "Time spent on requests",
 			Buckets: prometheus.LinearBuckets(0, 20, 20),
 		},
 	)
 	httpRequests = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "failserver_requests_total",
+			Name: "http_requests_total",
 			Help: "Number of HTTP requests",
 		},
 		[]string{"status"},
