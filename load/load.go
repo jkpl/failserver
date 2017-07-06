@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"encoding/json"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/push"
@@ -20,7 +22,7 @@ var (
 	testTime             = time.Duration(int64(getIntEnv("TEST_TIME", 20))) * time.Second
 	concurrencyFactor    = getIntEnv("CONCURRENCY_FACTOR", 1)
 	targetUrl            = getStringEnv("TARGET_URL", "http://localhost:8080")
-	pushGatewayAddress   = getStringEnv("PUSH_GATEWAY", "http://localhost:9091")
+	pushGatewayAddress   = getStringEnv("PUSH_GATEWAY", "")
 
 	requestDuration = prometheus.NewSummary(
 		prometheus.SummaryOpts{
@@ -81,6 +83,7 @@ func httpTest(httpClient *http.Client) {
 		httpRequests.With(statusCodeLabel(resp.StatusCode)).Inc()
 		io.Copy(ioutil.Discard, resp.Body)
 	} else {
+		log.Printf("Failed HTTP request: %s\n", err)
 		httpErrors.Inc()
 	}
 }
@@ -104,6 +107,25 @@ func startTicking(tickers []chan time.Time) {
 			}
 		}
 	}
+}
+
+func dumpMetricsAsJson(registry *prometheus.Registry) (err error) {
+	out := bufio.NewWriter(os.Stdout)
+	defer out.Flush()
+
+	family, err := registry.Gather()
+	if err != nil {
+		return
+	}
+
+	bytes, err := json.Marshal(family)
+	if err != nil {
+		return
+	}
+
+	_, err = out.Write(bytes)
+
+	return
 }
 
 func main() {
@@ -144,15 +166,23 @@ func main() {
 	startTicking(tickers)
 	log.Println("Test ended")
 
-	// Push to gateway
-	log.Println("Pushing metrics")
-	if err := push.AddFromGatherer(
-		"load_test", nil,
-		pushGatewayAddress,
-		registry,
-	); err != nil {
-		log.Panic(err)
+	// Push to gateway or dump to stdout
+	if pushGatewayAddress != "" {
+		log.Println("Pushing metrics")
+		if err := push.AddFromGatherer(
+			"load_test", nil,
+			pushGatewayAddress,
+			registry,
+		); err != nil {
+			log.Panic(err)
+		}
+		log.Println("Metrics pushed")
+	} else {
+		log.Println("Dumping metrics to stdout")
+		if err := dumpMetricsAsJson(registry); err != nil {
+			log.Panic(err)
+		}
 	}
-	log.Println("Metrics pushed")
+
 	log.Println("Exiting")
 }
