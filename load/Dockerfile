@@ -6,6 +6,7 @@ COPY . .
 RUN apk update && \
     apk add git && \
     go-wrapper download && \
-    go-wrapper install
+    go-wrapper install && \
+    mkdir -p /results
 
 CMD ["go-wrapper", "run"]

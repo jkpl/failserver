@@ -15,5 +15,8 @@ services:
       - "TEST_TIME=10"
       - "MIN_REQ_TIME=100"
       - "TARGET_URL=http://failserver:8080/"
+      - "METRICS_FILE=/results/results.json"
     depends_on:
       - failserver
+    volumes:
+      - "./results:/results"

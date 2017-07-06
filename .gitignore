@@ -1,3 +1,4 @@
 failserver
 load/load
 *.pyc
+results/

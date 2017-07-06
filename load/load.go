@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
@@ -23,6 +22,7 @@ var (
 	concurrencyFactor    = getIntEnv("CONCURRENCY_FACTOR", 1)
 	targetUrl            = getStringEnv("TARGET_URL", "http://localhost:8080")
 	pushGatewayAddress   = getStringEnv("PUSH_GATEWAY", "")
+	metricsOutputFile    = getStringEnv("METRICS_FILE", "")
 
 	requestDuration = prometheus.NewSummary(
 		prometheus.SummaryOpts{
@@ -109,10 +109,7 @@ func startTicking(tickers []chan time.Time) {
 	}
 }
 
-func dumpMetricsAsJson(registry *prometheus.Registry) (err error) {
-	out := bufio.NewWriter(os.Stdout)
-	defer out.Flush()
-
+func dumpMetricsAsJson(filepath string, registry *prometheus.Registry) (err error) {
 	family, err := registry.Gather()
 	if err != nil {
 		return
@@ -123,7 +120,7 @@ func dumpMetricsAsJson(registry *prometheus.Registry) (err error) {
 		return
 	}
 
-	_, err = out.Write(bytes)
+	err = ioutil.WriteFile(filepath, bytes, 0644)
 
 	return
 }
@@ -166,7 +163,7 @@ func main() {
 	startTicking(tickers)
 	log.Println("Test ended")
 
-	// Push to gateway or dump to stdout
+	// Push to gateway
 	if pushGatewayAddress != "" {
 		log.Println("Pushing metrics")
 		if err := push.AddFromGatherer(
@@ -177,9 +174,12 @@ func main() {
 			log.Panic(err)
 		}
 		log.Println("Metrics pushed")
-	} else {
-		log.Println("Dumping metrics to stdout")
-		if err := dumpMetricsAsJson(registry); err != nil {
+	}
+
+	// Dump metrics to file
+	if metricsOutputFile != "" {
+		log.Printf("Dumping metrics to %s\n", metricsOutputFile)
+		if err := dumpMetricsAsJson(metricsOutputFile, registry); err != nil {
 			log.Panic(err)
 		}
 	}
