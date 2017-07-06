@@ -1,0 +1,5 @@
+# failserver
+
+```
+./run.sh help
+```

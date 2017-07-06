@@ -15,7 +15,7 @@ print_help() {
 Commands:
 load  = run the load test and exit
 help  = print this help
-build = (re)build local images
+build = (re)build local Docker images
 
 No command:
 Run all the services
@@ -47,5 +47,9 @@ main() {
         *) run_service "$@" ;;
     esac
 }
+
+if ! hash docker-compose 2>/dev/null; then
+    echo "Error: docker-compose is not installed" >&2
+fi
 
 main "$@"
