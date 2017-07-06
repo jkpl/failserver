@@ -1,0 +1,19 @@
+version: '3'
+services:
+  failserver:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - "MAX_LATENCY_MS=50"
+  load:
+    build: ./load
+    links:
+      - failserver
+    environment:
+      - "CONCURRENCY_FACTOR=100"
+      - "TEST_TIME=10"
+      - "MIN_REQ_TIME=100"
+      - "TARGET_URL=http://failserver:8080/"
+    depends_on:
+      - failserver
