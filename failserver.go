@@ -8,7 +8,9 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"os/exec"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -28,6 +30,7 @@ var (
 		[]string{"code"},
 	)
 	maxLatency = int64(getIntEnv("MAX_LATENCY_MS"))
+	version    = strings.TrimSpace(runCommand(exec.Command("git", "rev-parse", "HEAD")))
 )
 
 func getIntEnv(envKey string) int {
@@ -52,6 +55,16 @@ func requestDurationTrack(start time.Time) {
 	requestDuration.Observe(elapsedMillis)
 }
 
+func runCommand(cmd *exec.Cmd) string {
+	out, err := cmd.Output()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return string(out)
+}
+
 func handler(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	defer requestDurationTrack(now)
@@ -70,10 +83,15 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func versionHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, version)
+}
+
 func main() {
 	prometheus.MustRegister(httpRequests, requestDuration)
 
 	http.HandleFunc("/", handler)
+	http.HandleFunc("/version", versionHandler)
 	http.Handle("/metrics", promhttp.Handler())
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
