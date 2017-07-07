@@ -17,8 +17,8 @@ import (
 var (
 	requestDuration = prometheus.NewSummary(
 		prometheus.SummaryOpts{
-			Name:       "http_request_time_ms",
-			Help:       "Time spent on requests",
+			Name:       "http_request_duration_microseconds",
+			Help:       "Time spent on HTTP requests",
 			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
 		},
 	)
@@ -50,9 +50,8 @@ func statusCodeLabel(status int) prometheus.Labels {
 }
 
 func requestDurationTrack(start time.Time) {
-	elapsed := time.Since(start)
-	elapsedMillis := float64(elapsed / time.Millisecond)
-	requestDuration.Observe(elapsedMillis)
+	elapsed := float64(time.Since(start) / time.Microsecond)
+	requestDuration.Observe(elapsed)
 }
 
 func runCommand(cmd *exec.Cmd) string {

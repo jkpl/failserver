@@ -26,9 +26,16 @@ var (
 
 	requestDuration = prometheus.NewSummary(
 		prometheus.SummaryOpts{
-			Name:       "http_request_time_ms",
-			Help:       "Time spent on requests",
+			Name:       "http_request_duration_microseconds",
+			Help:       "Time spent on HTTP requests",
 			Objectives: map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001},
+		},
+	)
+	requestDurationHist = prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_hist_microseconds",
+			Help:    "Time spent on HTTP requests",
+			Buckets: prometheus.LinearBuckets(0, 10000, 200),
 		},
 	)
 	httpRequests = prometheus.NewCounterVec(
@@ -70,9 +77,9 @@ func statusCodeLabel(status int) prometheus.Labels {
 }
 
 func requestDurationTrack(start time.Time) {
-	elapsed := time.Since(start)
-	elapsedMillis := float64(elapsed / time.Millisecond)
-	requestDuration.Observe(elapsedMillis)
+	elapsed := float64(time.Since(start) / time.Microsecond)
+	requestDuration.Observe(elapsed)
+	requestDurationHist.Observe(elapsed)
 }
 
 func httpTest(httpClient *http.Client) {
@@ -128,7 +135,7 @@ func dumpMetricsAsJson(filepath string, registry *prometheus.Registry) (err erro
 func main() {
 	// Init Prometheus
 	registry := prometheus.NewRegistry()
-	registry.MustRegister(requestDuration, httpRequests, httpErrors)
+	registry.MustRegister(requestDuration, requestDurationHist, httpRequests, httpErrors)
 
 	// Init HTTP transport and client
 	defaultRoundTripper := http.DefaultTransport
