@@ -1,9 +1,21 @@
 version: '3'
 services:
-  failserver:
+  failserver1:
     build: .
     ports:
       - "8080:8080"
+    environment:
+      - "MAX_LATENCY_MS=50"
+  failserver2:
+    build: .
+    ports:
+      - "8081:8080"
+    environment:
+      - "MAX_LATENCY_MS=50"
+  failserver3:
+    build: .
+    ports:
+      - "8082:8080"
     environment:
       - "MAX_LATENCY_MS=50"
   prometheus:
@@ -11,11 +23,41 @@ services:
     ports:
       - "9090:9090"
     links:
-      - failserver
+      - failserver1
+      - failserver2
+      - failserver3
       - pushgateway
+      - blackboxexporter
+      - alertmanager
     volumes:
       - "./prometheus.yml:/etc/prometheus/prometheus.yml"
+      - "./alert_rules.yml:/etc/prometheus/alert_rules.yml"
+      - "./failserver.yml:/etc/failserver.yml"
+    command: [ "-config.file=/etc/prometheus/prometheus.yml", "-alertmanager.url=http://alertmanager:9093", "-storage.local.path=/prometheus", "-web.console.libraries=/usr/share/prometheus/console_libraries", "-web.console.templates=/usr/share/prometheus/consoles" ]
+
   pushgateway:
     image: prom/pushgateway
     ports:
       - "9091:9091"
+  blackboxexporter:
+    image: prom/blackbox-exporter
+    links:
+      - failserver1
+      - failserver2
+      - failserver3
+    ports:
+      - "9115:9115"
+    volumes:
+      - "./blackbox.yml:/etc/blackbox_exporter/config.yml"
+  alertmanager:
+    image: prom/alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - "./alertmanager.yml:/etc/alertmanager/config.yml"
+  grafana:
+    image: grafana/grafana
+    links:
+      - prometheus
+    ports:
+      - "3000:3000"
